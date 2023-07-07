@@ -15,12 +15,15 @@ with open(filename, 'r') as file:
             admin_id = line.split('=')[1].strip()
         elif 'API_KEY' in line:
             API_KEY = line.split('=')[1].strip().split()
+        elif 'bot_token' in line:
+            bot_token = line.split('=')[1].strip().split()
 
+bot_token = bot_token[0]
 admin_id = int(admin_id)
 API_KEY = API_KEY[0]
 print("admin_id =", admin_id)
 print("API_KEY =", API_KEY)
-
+print("API_KEY =", bot_token)
 
 from smsactivate.api import SMSActivateAPI
 sa = SMSActivateAPI(API_KEY)
@@ -30,9 +33,6 @@ from sqlite import db_start, create_profile, edit_number, get_all_proxies, delet
 async def on_startup(_):
     await db_start()
 
-
-# Здесь необходимо вставить токен вашего бота
-bot_token = '6187905230:AAEhtWIO4J2LE3CvmVCivOF40TX73c_sP2k'
 
 # Инициализация бота и диспетчера
 bot = Bot(token=bot_token)
@@ -88,29 +88,44 @@ async def handle_profile_button(message: types.Message, state: FSMContext):
     if profile and profile[1]:  # Если у пользователя уже есть номер в категории worker
         await message.answer("⚠️У вас уже есть номер.⚠️")
     else:
-        number = sa.getNumber(service='lf', country=11, freePrice ="true")
-        try:
-            edit_number(number['phone'], number['activation_id'], message.from_user.id)
-            await message.answer(f"Ваш номер: {number['phone']}")
-            keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-            Kode_button = types.KeyboardButton("КОД активации")
-            Numb_button = types.KeyboardButton("Взять номер")
-            proxy_button = types.KeyboardButton(text="Взять прокси")
-            promo_button = types.KeyboardButton(text="Взять промокод")
-            Home_button = types.KeyboardButton(text="Мои данные")
-            keyboard.add(Numb_button, Kode_button, proxy_button, promo_button, Home_button)
-            await message.answer("Выберите опцию:", reply_markup=keyboard)
-        except:
-            keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-            Kode_button = types.KeyboardButton("КОД активации")
-            Numb_button = types.KeyboardButton("Взять номер")
-            proxy_button = types.KeyboardButton(text="Взять прокси")
-            promo_button = types.KeyboardButton(text="Взять промокод")
-            Home_button = types.KeyboardButton(text="Мои данные")
-            keyboard.add(Numb_button, Kode_button, proxy_button, promo_button, Home_button)
-            # print(number['message'])
-            await message.answer(f"⚠️ Oшибка ⚠️", reply_markup=keyboard)
+        keyboard = types.InlineKeyboardMarkup(resize_keyboard=True, row_width=1)
+        Ru = types.InlineKeyboardButton(text="Россия", callback_data=1)
+        Kz = types.InlineKeyboardButton(text="Казахстан", callback_data=2)
+        Ue = types.InlineKeyboardButton(text="Украина", callback_data=3)
+        Chine = types.InlineKeyboardButton(text="Китай", callback_data=4)
+        Filipins = types.InlineKeyboardButton(text="Филиппины", callback_data=5)
+        keyboard.add(Kz, Ru, Ue, Chine, Filipins)
+        await message.answer("Выбирите страну: ", reply_markup=keyboard)
 
+@dp.callback_query_handler(lambda query: query.data in ['1', '2', '3', '4', '5'])
+async def handle_country_selection(query: types.CallbackQuery, state: FSMContext):
+    country_code = int(query.data)
+    number = sa.getNumber(service='lf', country=country_code, freePrice ="true")
+    try:
+        edit_number(number['phone'], number['activation_id'], query.from_user.id)
+        await query.message.answer(f"Ваш номер: {number['phone']}")
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+        Kode_button = types.KeyboardButton("КОД активации")
+        Numb_button = types.KeyboardButton("Взять номер")
+        proxy_button = types.KeyboardButton(text="Взять прокси")
+        promo_button = types.KeyboardButton(text="Взять промокод")
+        Home_button = types.KeyboardButton(text="Мои данные")
+        keyboard.add(Numb_button, Kode_button, proxy_button, promo_button, Home_button)
+        await query.message.answer("Выберите опцию:", reply_markup=keyboard)
+    except:
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+        Kode_button = types.KeyboardButton("КОД активации")
+        Numb_button = types.KeyboardButton("Взять номер")
+        proxy_button = types.KeyboardButton(text="Взять прокси")
+        promo_button = types.KeyboardButton(text="Взять промокод")
+        Home_button = types.KeyboardButton(text="Мои данные")
+        keyboard.add(Numb_button, Kode_button, proxy_button, promo_button, Home_button)
+        # print(number['message'])
+        await query.message.answer(f"⚠️ Oшибка ⚠️", reply_markup=keyboard)
+  
+        
+        
+        
 
 
 # Обработчик нажатия на кнопку "Мои данные2"
